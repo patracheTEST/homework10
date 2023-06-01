@@ -54,7 +54,7 @@ void printStack();
 
 int main()
 {
-    pirntf("[----- [김상수] [2018038078] -----]");
+    printf("[----- [김상수] [2018038078] -----]");
 
 	char command;
 	int key;
