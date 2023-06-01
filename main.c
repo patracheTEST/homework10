@@ -11,8 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
-
 typedef struct node {
 	int key;
 	struct node *left;
@@ -114,7 +112,7 @@ int main()
 			break;
 		}
 
-	}while(command != 'q' && command != 'Q');
+	} while(command != 'q' && command != 'Q');
 
 	return 1;
 }
@@ -139,7 +137,13 @@ int initializeBST(Node** h) {
 }
 
 
-
+/**
+ * @brief 중위 순회
+ * 
+ * 왼쪽 자식부터 출력하는 함수(저번 주 과제에 나왔으니 짧게 적겠습니다.)
+ * 
+ * @param ptr 
+ */
 void recursiveInorder(Node* ptr)
 {
 	if(ptr) {
@@ -150,17 +154,61 @@ void recursiveInorder(Node* ptr)
 }
 
 /**
- * textbook: p 224
+ * @brief 중위 순회(재귀 없이)
+ * 
+ * 왼쪽 자식 -> 부모 -> 오른쪽 자식 순으로 출력하는 함수이다.
+ * 
+ * @param node 
  */
 void iterativeInorder(Node* node)
 {
+    for(;;)
+	{
+        // 먼저 들어온게 나중에 출력되는 스택을 이용해서 왼쪽 자식을 전부 스택에 넣는다.
+		for(; node; node = node->left)
+			push(node);
+        // 가장 마지막에 넣은 노드, 가장 작은 리프노드가 될 것이다.
+		node = pop();
+
+        // 스택에 남아있는 값이 없어서 null 을 반환하면 종료한다.
+		if(!node) break;
+		printf(" [%d] ", node->key);
+
+        // 오른쪽 자식노드로 변경
+		node = node->right;
+	}
 }
 
 /**
- * textbook: p 225
+ * @brief 트리의 레벨 순서 순회 함수
+ * 
+ * 같은 레벨 순으로 출력을 레벨이 낮은 순으로, 왼쪽 부터 출력을 해준다.
+ * 
+ * @param ptr 
  */
 void levelOrder(Node* ptr)
 {
+    // int front = rear = -1;
+
+	if(!ptr) return; /* empty tree */
+
+	enQueue(ptr);
+
+	for(;;)
+	{
+		ptr = deQueue(); // 같은 레벨의 노드를 순서대로 deQueue해준다.
+		if(ptr) {
+			printf(" [%d] ", ptr->key);
+
+			if(ptr->left) // 노드의 왼쪽 값이 있으면 큐에 넣어준다.
+				enQueue(ptr->left);
+			if(ptr->right) // 노드의 오른쪽 값이 있으면 큐에 넣어준다.
+				enQueue(ptr->right);
+		}
+		else
+			break;
+
+	}
 }
 
 
@@ -207,9 +255,131 @@ int insert(Node* head, int key)
 	return 1;
 }
 
-
+/**
+ * @brief 키 값을 검색해서 노드를 삭제하는 함수.
+ * 
+ * @param head 
+ * @param key 
+ * @return int 
+ */
 int deleteNode(Node* head, int key)
 {
+    // 트리가 비어있을 경우의 처리
+    if (head == NULL) {
+		printf("\n Nothing to delete!!\n");
+		return -1;
+	}
+
+	if (head->left == NULL) {
+		printf("\n Nothing to delete!!\n");
+		return -1;
+	}
+
+	Node* root = head->left;
+
+	Node* parent = NULL;
+	Node* ptr = root;
+
+    // 지울 노드를 찾아준다.
+	while((ptr != NULL)&&(ptr->key != key)) {
+		if(ptr->key != key) {
+
+			parent = ptr;
+
+			if(ptr->key > key)
+				ptr = ptr->left;
+			else
+				ptr = ptr->right;
+		}
+	}
+
+	// 지울 노드가 없을 경우(맞는 키가 없을 경우)
+	if(ptr == NULL)
+	{
+		printf("No node for key [%d]\n ", key);
+		return -1;
+	}
+
+	/*
+	 * case 1: 자식 노드가 없는 노드일 경우의 처리
+	 */
+	if(ptr->left == NULL && ptr->right == NULL)
+	{
+        // 루트 노드인가 아닌가
+        // 루트 노드가 아닌경우 왼쪽 오른쪽을 구분해서 지워주고
+		if(parent != NULL) { 
+			if(parent->left == ptr)
+				parent->left = NULL;
+			else
+				parent->right = NULL;
+		} else {
+            // 루트 노드인 경우
+			head->left = NULL;
+		}
+
+        // 지워준 노드를 할당 해제해준다.
+		free(ptr);
+		return 1;
+	}
+
+	/**
+	 * case 2: 부모 노드일 경우, 자식 노드가 하나밖에 없을 경우
+	 */
+	if ((ptr->left == NULL || ptr->right == NULL))
+	{
+        // 자식 노드를 가져온다.
+		Node* child;
+		if (ptr->left != NULL)
+			child = ptr->left;
+		else
+			child = ptr->right;
+
+        // 루트 노드일 경우의 처리 분리
+        // 루트 노드가 아닐 경우 현재 노드의 자리를 자식 노드에게 넘겨준다.
+		if(parent != NULL)
+		{
+			if(parent->left == ptr)
+				parent->left = child;
+			else
+				parent->right = child;
+		} else {
+			root = child;
+		}
+
+		free(ptr);
+		return 1;
+	}
+
+	/**
+	 * case 3: 부모 노드일 경우, 자식 노드가 둘 다 있을 경우
+	 */
+
+	Node* candidate;
+	parent = ptr;
+
+    // 지울 노드보다 큰 값의 트리인 오른쪽 트리를 가져와서
+	candidate = ptr->right;
+    // 그 중에서 가장 작은 노드를 가져온다.
+	while(candidate->left != NULL)
+	{
+		parent = candidate;
+		candidate = candidate->left;
+	}
+    // 위의 반복문을 실행 했는지 안했는지
+    // 지울 노드의 오른쪽이 서브트리인지 단일 노드인지 에 따라.. 라고 생각했는데 이건 아님.
+    // 지울 노드의 오론쪽 노드에 왼쪽 노드가 있는지 없는지에 따라(지울 노드의 오른쪽 노드가 지울 노드의 오른쪽 서브트리에서 가장 작은 값인 경우)
+    // 노드의 연결을 바꿔준다.
+	if (parent->right == candidate)
+		parent->right = candidate->right;
+	else
+        // left가 아니라 candidate->right의 위치를 가져와 주는 이유는
+        // candidate의 왼쪽 노드가 있을 경우는 없지만 오른쪽 노드는 있을 경우가 있기 때문이다.
+		parent->left = candidate->right;
+
+	ptr->key = candidate->key;
+
+	free(candidate);
+	return 1;
 }
 
 
@@ -243,18 +413,45 @@ int freeBST(Node* head)
 
 Node* pop()
 {
+    if (top < 0) return NULL;
+	return stack[top--];
 }
 
 void push(Node* aNode)
 {
+    stack[++top] = aNode;
 }
 
 
 
 Node* deQueue()
 {
+    if (front == rear) {
+		// printf("\n....Now Queue is empty!!\n" );
+		return NULL;
+	}
+
+	front = (front + 1) % MAX_QUEUE_SIZE;
+	return queue[front];
 }
 
 void enQueue(Node* aNode)
 {
+    rear = (rear + 1) % MAX_QUEUE_SIZE;
+	if (front == rear) {
+		// printf("\n....Now Queue is full!!\n");
+		return;
+	}
+
+	queue[rear] = aNode;
+}
+
+void printStack()
+{
+	int i = 0;
+	printf("--- stack ---\n");
+	while(i <= top)
+	{
+		printf("stack[%d] = %d\n", i, stack[i]->key);
+	}
 }
